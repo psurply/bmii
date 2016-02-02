@@ -1,0 +1,9 @@
+elements-dir ./footprints
+elements-dir /usr/share/pcb/pcblib-newlib/geda/
+elements-dir /usr/share/pcb/pcblib-newlib/generic/
+
+schematics sch/bus_m4gyk_II.sch
+schematics sch/power.sch
+schematics sch/conf.sch
+
+output-name pcb/bus_m4gyk_II
