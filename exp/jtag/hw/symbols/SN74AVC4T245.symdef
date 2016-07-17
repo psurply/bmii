@@ -1,0 +1,39 @@
+--compact
+
+[labels]
+SN74AVC4T245
+! device=SN74AVC4T245
+refdes=U?
+! footprint=SO16
+
+[top]
+
+1 VCCA
+
+
+16 VCCB
+
+[left]
+
+15 ! 1OE
+2 1DIR
+4 1A1
+5 1A2
+
+14 ! 2OE
+3 2DIR
+6 2A1
+7 2A2
+
+[right]
+
+13 1B1
+12 1B2
+
+11 2B1
+10 2B2
+
+[bottom]
+
+8 GND
+9 GND

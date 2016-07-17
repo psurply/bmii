@@ -1,0 +1,7 @@
+elements-dir ./footprints
+elements-dir /usr/share/pcb/pcblib-newlib/geda/
+elements-dir /usr/share/pcb/pcblib-newlib/generic/
+
+schematics sch/bmii_jtag.sch
+
+output-name pcb/bmii_jtag
