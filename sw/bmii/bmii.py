@@ -55,19 +55,18 @@ class Driver():
 
 
 class BMIIModule():
-    def __init__(self, iomodule, test_module=None):
+    def __init__(self, iomodule, *testcases):
         self.iomodule = iomodule
         self.usbctl = None
         self.drv = Driver(self)
-        if test_module != None:
-            self.test_suite = unittest.defaultTestLoader.loadTestsFromModule(test_module)
-        else:
-            self.test_suite = None
+        self.test_suite = \
+                map((lambda x : \
+                unittest.defaultTestLoader.loadTestsFromTestCase(x)),
+                testcases)
 
     def run_tests(self):
-        print("Simulating {0}...".format(self.iomodule.name))
-        if self.test_suite != None:
-            unittest.TextTestRunner().run(self.test_suite)
+        for ts in self.test_suite:
+            unittest.TextTestRunner().run(ts)
 
 
 class BMIIModules():
@@ -93,8 +92,10 @@ class BMII():
 
         self.modules = BMIIModules(self.usbctl)
 
-        self.modules += BMIIModule(self.ioctl.nb, test_nb)
-        self.modules += BMIIModule(self.ioctl.sb, test_sb)
+        self.modules += BMIIModule(self.ioctl.nb,
+                test_nb.NorthBridgeUSBCTLCase,
+                test_nb.NorthBridgeIOModuleCase)
+        self.modules += BMIIModule(self.ioctl.sb, test_sb.SouthBridgeCase)
 
         self.parser = argparse.ArgumentParser(description="BMII CLI")
         self.subparser = self.parser.add_subparsers()
@@ -135,7 +136,7 @@ class BMII():
                 name="list",
                 help="list IOModules")
         list_parser.set_defaults(action="list")
- 
+
     def add_module(self, module):
         self.modules += module
         self.ioctl += module.iomodule

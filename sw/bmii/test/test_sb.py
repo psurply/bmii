@@ -15,11 +15,9 @@ class SouthBridgeCase(SimCase, unittest.TestCase):
             yield self.tb.dut.cregs.PINOUT2H.eq(0)
             yield
             self.assertEqual((yield self.tb.dut.cregs.PINOUT2H.IO28), 0)
-            self.assertEqual((yield self.tb.dut.pins.IO28.t.o), 0)
             yield self.tb.dut.cregs.PINOUT2H.eq(1)
             yield
             self.assertEqual((yield self.tb.dut.cregs.PINOUT2H.IO28), 1)
-            self.assertEqual((yield self.tb.dut.pins.IO28.t.o), 1)
         self.run_with(gen())
 
     def test_pinscan(self):
@@ -30,14 +28,4 @@ class SouthBridgeCase(SimCase, unittest.TestCase):
             yield self.tb.dut.pins.IO18.t.i.eq(1)
             yield
             self.assertEqual((yield self.tb.dut.cregs.PINSCAN1H.IO18), 1)
-        self.run_with(gen())
-
-    def test_pindir(self):
-        def gen():
-            yield self.tb.dut.cregs.PINDIR1L.eq(0)
-            yield
-            self.assertEqual((yield self.tb.dut.pins.IO10.t.oe), 0)
-            yield self.tb.dut.cregs.PINDIR1L.eq(1)
-            yield
-            self.assertEqual((yield self.tb.dut.pins.IO10.t.oe), 1)
         self.run_with(gen())

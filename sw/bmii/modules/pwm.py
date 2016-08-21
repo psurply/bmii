@@ -1,3 +1,4 @@
+from bmii.ioctl.testbench import *
 from bmii import *
 
 
@@ -16,9 +17,26 @@ class PWM(BMIIModule):
             self.comb += self.iosignals.OUT.eq(self.cregs.COUNTER < self.cregs.WIDTH)
             self.comb += self.iosignals.NOUT.eq(~self.iosignals.OUT)
 
+    class PWMTestCase(IOModuleTestCase(PWMIOModule())):
+        def test_basic(self):
+            def gen():
+                yield self.tb.iomodule.cregs.WIDTH.eq(42)
+                yield
+
+                for i in range(41):
+                    self.assertEqual((yield self.tb.iomodule.iosignals.OUT), 1)
+                    yield
+
+                for i in range(214):
+                    self.assertEqual((yield self.tb.iomodule.iosignals.OUT), 0)
+                    yield
+
+                self.assertEqual((yield self.tb.iomodule.iosignals.OUT), 1)
+
+            self.run_with(gen())
 
     def __init__(self):
-        BMIIModule.__init__(self, self.PWMIOModule())
+        BMIIModule.__init__(self, self.PWMIOModule(), self.PWMTestCase)
 
     def set(self, value):
         self.drv.WIDTH = value

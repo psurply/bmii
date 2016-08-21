@@ -47,11 +47,6 @@ class NorthBridge(IOModule):
         self.comb += self.ibus_m.mosi.eq(self.fdt.i)
         self.comb += self.fdt.o.eq(self.ibus_m.miso)
 
-        self.iosignals += IOSignal("TEST0", IOSignalDir.OUT)
-        self.comb += self.iosignals.TEST0.eq(self.ibus_m.maddr[0])
-        self.iosignals += IOSignal("TEST1", IOSignalDir.OUT)
-        self.comb += self.iosignals.TEST1.eq(self.cregs.SCRATCH[0])
-
     def connect(self, iomodule):
         self.ibus_slaves.append(iomodule.ibus)
 

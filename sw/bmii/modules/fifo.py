@@ -1,4 +1,5 @@
 from bmii import *
+from bmii.ioctl.testbench import *
 from migen.genlib.fifo import *
 import sys
 
@@ -23,9 +24,53 @@ class FIFOIOModule(IOModule):
         self.comb += fifo.re.eq(self.cregs.OUT.rd_pulse)
 
 
+class FIFOTestCase(IOModuleTestCase(FIFOIOModule())):
+    def test_basic(self):
+        def gen():
+            yield from self.ibus_write_creg(self.tb.iomodule.cregs.IN, 0x42)
+            yield
+            yield
+
+            yield from self.ibus_reset()
+            yield
+
+            yield from self.ibus_write_creg(self.tb.iomodule.cregs.IN, 0x13)
+            yield
+            yield
+
+            yield from self.ibus_reset()
+            yield
+
+            yield from self.ibus_read_creg(self.tb.iomodule.cregs.STATUS)
+            yield
+
+            self.assertEqual((yield self.tb.ibus_m.miso), 0x3)
+
+            yield from self.ibus_read_creg(self.tb.iomodule.cregs.OUT)
+            yield
+            yield
+
+            self.assertEqual((yield self.tb.ibus_m.miso), 0x42)
+
+            yield from self.ibus_reset()
+            yield
+
+            yield from self.ibus_read_creg(self.tb.iomodule.cregs.OUT)
+            yield
+            yield
+
+            self.assertEqual((yield self.tb.ibus_m.miso), 0x13)
+
+            yield from self.ibus_reset()
+            yield
+            yield
+
+        self.run_with(gen())
+
+
 class FIFO(BMIIModule):
     def __init__(self):
-        BMIIModule.__init__(self, FIFOIOModule())
+        BMIIModule.__init__(self, FIFOIOModule(), FIFOTestCase)
 
     def enqueue(self, value):
         assert self.drv.STATUS.WRITABLE, "FIFO is full"

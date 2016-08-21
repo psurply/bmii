@@ -57,8 +57,6 @@ class NorthBridgeUSBCTLCase(SimCase, unittest.TestCase):
 
             yield self.tb.act.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ioctl_rdy), 1)
-            yield
             self.assertEqual((yield self.tb.dut.ioctl_rdy), 0)
 
             yield self.tb.act.eq(0)
@@ -66,7 +64,7 @@ class NorthBridgeUSBCTLCase(SimCase, unittest.TestCase):
             yield self.tb.wr.eq(0)
             yield self.tb.la.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ioctl_rdy), 0)
+            self.assertEqual((yield self.tb.dut.ioctl_rdy), 1)
             self.assertEqual((yield self.tb.dut.fdt.oe), 0)
 
             yield
@@ -89,10 +87,6 @@ class NorthBridgeUSBCTLCase(SimCase, unittest.TestCase):
 
             yield self.tb.act.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
-            self.assertEqual((yield self.tb.dut.ibus_m.mosi), value)
-
-            yield
             self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
             self.assertEqual((yield self.tb.dut.ibus_m.mosi), value)
             self.assertEqual((yield self.tb.dut.fdt.oe), 0)
@@ -102,13 +96,9 @@ class NorthBridgeUSBCTLCase(SimCase, unittest.TestCase):
             yield self.tb.wr.eq(0)
             yield self.tb.la.eq(0)
             yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
-
-            yield
             self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
 
         self.run_with(gen())
-
 
     def test_read(self):
         def gen():
@@ -125,9 +115,6 @@ class NorthBridgeUSBCTLCase(SimCase, unittest.TestCase):
 
             yield self.tb.act.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
-
-            yield
             self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
             self.assertEqual((yield self.tb.fd_in), value)
             self.assertEqual((yield self.tb.dut.fdt.oe), 1)
@@ -136,9 +123,6 @@ class NorthBridgeUSBCTLCase(SimCase, unittest.TestCase):
             yield self.tb.fd_out.eq(0)
             yield self.tb.wr.eq(0)
             yield self.tb.la.eq(0)
-            yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
-
             yield
             self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
 
@@ -167,6 +151,7 @@ class NorthBridgeIOModuleCase(SimCase, unittest.TestCase):
             diom.set_addr(1)
             nb.connect(nb)
             nb.connect(diom)
+            nb.comb += nb.ibus_m.connect(*nb.ibus_slaves)
 
             self.fd_in = Signal(8)
             self.fd_out = Signal(8)
@@ -205,10 +190,6 @@ class NorthBridgeIOModuleCase(SimCase, unittest.TestCase):
 
             yield self.tb.act.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
-            self.assertEqual((yield self.tb.dut.ibus_m.mosi), value)
-
-            yield
             self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
             self.assertEqual((yield self.tb.dut.ibus_m.mosi), value)
             self.assertEqual((yield self.tb.dut.fdt.oe), 0)
@@ -217,9 +198,6 @@ class NorthBridgeIOModuleCase(SimCase, unittest.TestCase):
             yield self.tb.fd_out.eq(0)
             yield self.tb.wr.eq(0)
             yield self.tb.la.eq(0)
-            yield
-            self.assertEqual((yield self.tb.diom.select), 1)
-
             yield
             self.assertEqual((yield self.tb.diom.select), 0)
 
@@ -242,20 +220,18 @@ class NorthBridgeIOModuleCase(SimCase, unittest.TestCase):
 
             yield self.tb.act.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
-
+            self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
+            self.assertEqual((yield self.tb.diom.select), 1)
             yield
+            self.assertEqual((yield self.tb.fd_in), 0x42)
 
             yield self.tb.act.eq(0)
             yield self.tb.fd_out.eq(0)
             yield self.tb.wr.eq(0)
             yield self.tb.la.eq(0)
             yield
-            self.assertEqual((yield self.tb.diom.select), 1)
-            self.assertEqual((yield self.tb.fd_in), 0x42)
-
-            yield
             self.assertEqual((yield self.tb.diom.select), 0)
+
 
         self.run_with(gen())
 
@@ -273,59 +249,17 @@ class NorthBridgeIOModuleCase(SimCase, unittest.TestCase):
 
             yield self.tb.act.eq(1)
             yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
-
-            yield
+            self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
+            self.assertEqual((yield self.tb.diom.select), 1)
 
             yield self.tb.act.eq(0)
             yield self.tb.fd_out.eq(0)
             yield self.tb.wr.eq(0)
             yield self.tb.la.eq(0)
             yield
-            self.assertEqual((yield self.tb.diom.select), 1)
             self.assertEqual((yield self.tb.fd_in), 0)
 
             yield
             self.assertEqual((yield self.tb.diom.select), 0)
-
-        self.run_with(gen())
-
-    def test_write(self):
-        def gen():
-            value = 0x2A
-
-            yield self.tb.dut.ibus_m.maddr.eq(1)
-            yield self.tb.dut.ibus_m.raddr.eq(0)
-
-            yield self.tb.act.eq(0)
-            yield self.tb.fd_out.eq(value)
-            yield self.tb.wr.eq(1)
-            yield self.tb.la.eq(0)
-            yield
-            self.assertEqual((yield self.tb.diom.select), 0)
-
-            yield self.tb.act.eq(1)
-            yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 0)
-            self.assertEqual((yield self.tb.dut.ibus_m.mosi), value)
-
-            yield
-            self.assertEqual((yield self.tb.dut.ibus_m.req), 1)
-            self.assertEqual((yield self.tb.dut.ibus_m.mosi), value)
-            self.assertEqual((yield self.tb.dut.fdt.oe), 0)
-
-            yield self.tb.act.eq(0)
-            yield self.tb.fd_out.eq(0)
-            yield self.tb.wr.eq(0)
-            yield self.tb.la.eq(0)
-            yield
-            self.assertEqual((yield self.tb.diom.select), 1)
-
-            yield
-            self.assertEqual((yield self.tb.diom.select), 0)
-
-            yield self.tb.dut.ibus_m.req.eq(0)
-            yield
-            self.assertEqual((yield self.tb.diom.cregs.REG1), 0x42)
 
         self.run_with(gen())
