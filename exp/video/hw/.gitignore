@@ -1,0 +1,13 @@
+*#
+*~
+*.save
+*-
+*.bak
+*.backup
+*.pcb.bak*
+*.new.pcb
+*.zip
+*.cnc
+bom.csv
+bom.dsv
+partslist.csv
