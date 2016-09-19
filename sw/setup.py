@@ -18,7 +18,11 @@ setup(
     author_email="pierre.surply@lse.epita.fr",
     install_requires=open('requirements.txt').readlines(),
     packages=find_packages(),
-    test_suite="test",
+    entry_points={
+          'console_scripts': [
+              'bmii = bmii.__main__:main'
+          ]
+    },
     license="BSD",
     platforms=["Any"],
     keywords="",

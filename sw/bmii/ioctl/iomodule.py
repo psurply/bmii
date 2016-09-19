@@ -1,7 +1,7 @@
 from enum import Enum
 from migen import *
 
-from .ibus import IBus
+from bmii.ioctl.ibus import IBus
 from bmii.ioctl.utils import *
 
 REGSIZE = 8
@@ -106,6 +106,9 @@ class IOSignal(Signal):
         self.name = name
         self.direction = direction
         Signal.__init__(self, 1, name)
+
+    def __repr__(self):
+        return "<{} {}>".format(self.name, self.direction)
 
 
 class IOSignals(Module):

@@ -1,6 +1,6 @@
 from migen import *
 
-from bmii.ioctl.iomodule import IOModule, CtrlReg, CtrlRegDir, IOSignal, IOSignalDir
+from bmii.ioctl.iomodule import *
 from bmii.ioctl.pins import *
 
 IO_WIDTH        = 16
@@ -29,3 +29,6 @@ class SouthBridge(IOModule):
             object.__getattribute__(self.pins, name).connect_realpin(led[i])
 
         self.pins.SW.connect_realpin(sw)
+
+    def pinout(self):
+        return str(self.pins)

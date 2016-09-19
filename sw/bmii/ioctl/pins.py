@@ -7,6 +7,9 @@ class Pin(Module):
     def __init__(self, name, mux_out_select, scan,
             regout=0, direction=0, mux_dir_select=0):
         self.name = name
+        self.iosignal_in = []
+        self.iosignal_out = None
+        self.iosignal_dirctl = None
 
         self.t = TSTriple()
         self.mux_out = Array(Signal() for x in range(PINMUX_WIDTH))
@@ -24,15 +27,28 @@ class Pin(Module):
     def __iadd__(self, iosignal):
         if iosignal.direction == IOSignalDir.IN:
             self.comb += iosignal.eq(self.t.i)
+            self.iosignal_in.append(iosignal)
         elif iosignal.direction == IOSignalDir.OUT:
             self.comb += self.mux_out[0].eq(iosignal)
             self.comb += self.mux_dir[0].eq(1)
+            self.iosignal_out = iosignal
         elif iosignal.direction == IOSignalDir.DIRCTL:
             self.comb += self.mux_dir[0].eq(iosignal)
+            self.iosignal_dirctl = iosignal
         return self
 
     def connect_realpin(self, real_pin):
         self.specials += self.t.get_tristate(real_pin)
+
+    def __repr__(self):
+        s = "<{}".format(self.name)
+        if len(self.iosignal_in) > 0:
+            s += " " + str(self.iosignal_in)
+        if self.iosignal_out is not None:
+            s += " " + str(self.iosignal_out)
+        if self.iosignal_dirctl is not None:
+            s += " " + str(self.iosignal_dirctl)
+        return s + ">"
 
 
 class Pins(Module):
@@ -40,6 +56,20 @@ class Pins(Module):
         object.__setattr__(self, pin.name, pin)
         self.submodules += pin
         return self
+
+    def __repr__(self):
+        def getid(x):
+            if isinstance(x, Pin):
+                return x.name
+            else:
+                return ""
+
+        s = "Pin assignment:\n"
+        for i in sorted(self.__dict__.values(), key=getid):
+            if isinstance(i, Pin):
+                s += "  " + str(i) + "\n"
+        return s
+
 
 def define_bmii_pins(cr):
     cr += CtrlReg("PINDIR1L", CtrlRegDir.RDWR)

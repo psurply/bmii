@@ -1,7 +1,7 @@
 from migen import *
 
-from .iomodule import IOModule, IOSignal, IOSignalDir, CtrlReg, CtrlRegDir
-from .ibus import IBus
+from bmii.ioctl.iomodule import *
+from bmii.ioctl.ibus import IBus
 
 FD_WIDTH    = 8
 INTR_WIDTH  = 2

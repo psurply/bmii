@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import sys
 import time
 import unittest
@@ -7,6 +8,7 @@ from bmii.ioctl import IOCtl
 from bmii.usbctl import USBCtl
 
 from bmii.test import *
+
 
 
 class DrvCReg():
@@ -68,6 +70,13 @@ class BMIIModule():
         for ts in self.test_suite:
             unittest.TextTestRunner().run(ts)
 
+    @classmethod
+    def default(cls, bmii):
+        m = cls()
+        bmii.add_module(m)
+
+        return m
+
 
 class BMIIModules():
     def __init__(self, usbctl):
@@ -98,6 +107,9 @@ class BMII():
         self.modules += BMIIModule(self.ioctl.sb, test_sb.SouthBridgeCase)
 
         self.parser = argparse.ArgumentParser(description="BMII CLI")
+        self.parser.add_argument("-m", "--module", action="append",
+                help="Add module to BMII")
+        self.parser.set_defaults(action="")
         self.subparser = self.parser.add_subparsers()
 
         def auto_int(nb):
@@ -137,6 +149,17 @@ class BMII():
                 help="list IOModules")
         list_parser.set_defaults(action="list")
 
+        pinout_parser = self.subparser.add_parser(
+                name="pinout",
+                help="display BMII pinout")
+        pinout_parser.set_defaults(action="pinout")
+
+        eval_parser = self.subparser.add_parser(
+                name="eval",
+                help="evaluate python expression")
+        eval_parser.add_argument("cmd", type=str)
+        eval_parser.set_defaults(action="eval")
+
     def add_module(self, module):
         self.modules += module
         self.ioctl += module.iomodule
@@ -169,12 +192,27 @@ class BMII():
                         print("\t{}: {} ({})".format(hex(r.addr), r.name,
                                         str(r.direction)))
 
+    def pinout(self):
+        return self.ioctl.sb.pinout()
+
     def cli(self):
         if len(sys.argv) == 1:
             self.parser.print_help()
             sys.exit(1)
 
         args = self.parser.parse_args()
+
+        for m in args.module:
+            spec = importlib.util.spec_from_file_location("bmii.modules", m)
+            try:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+            except AttributeError:
+                raise IOError("Cannot load module {}".format(m))
+
+            for i in mod.bmii_modules:
+                i.default(self)
+
         if args.action == "get":
             drv = self.modules.__getattribute__(args.module).drv
             cr = drv.__getattr__(args.reg)
@@ -198,8 +236,25 @@ class BMII():
             self.modules.__getattribute__(args.module).run_tests()
         elif args.action == "list":
             self.list_modules()
+        elif args.action == "pinout":
+            print(self.pinout())
+        elif args.action == "eval":
+            print(eval(args.cmd))
 
         self.args = args
+
+    @classmethod
+    def default(cls):
+        from bmii.modules.fade import Fade
+
+        b = cls()
+        fade = Fade()
+        b.add_module(fade)
+
+        b.ioctl.sb.pins.LED0 += fade.iomodule.iosignals.NOUT
+        b.ioctl.sb.pins.LED1 += fade.iomodule.iosignals.OUT
+
+        return b
 
 
 if __name__ == "__main__":
