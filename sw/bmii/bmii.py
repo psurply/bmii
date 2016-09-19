@@ -125,6 +125,7 @@ class BMII():
         self.modules += BMIIModule(self.ioctl.sb, test_sb.SouthBridgeCase)
 
         self.parser = argparse.ArgumentParser(description="BMII CLI")
+        self.parser.add_argument('--verbose', '-v', action='count', default=0)
         self.parser.add_argument("-m", action="append",
                 help="Add module to BMII", default=[])
         self.parser.set_defaults(action="")
@@ -143,13 +144,17 @@ class BMII():
                 description="Build BMII design/firmware",
                 help="build/program BMII design")
         build_parser.add_argument("buildtype",
-                choices=["all", "ioctl", "usbctl"])
+                choices=["all", "ioctl", "usbctl", "ub"],
+                default="all")
         build_parser.set_defaults(action="build")
 
         program_parser = self.subparser.add_parser(
                 name="program",
                 description="Program BMII",
                 help="Program BMII")
+        program_parser.add_argument("buildtype",
+                choices=["all", "ioctl", "usbctl", "ub"],
+                default="all")
         program_parser.set_defaults(action="program")
 
         simulate_parser = self.subparser.add_parser(
@@ -203,19 +208,23 @@ class BMII():
         self.modules.run_tests()
 
     def build_all(self):
-        self.ioctl.build()
+        self.usbctl.ubfw.build()
         self.usbctl.fw.build()
+        self.ioctl.build()
 
-    def program(self):
+    def program_all(self):
         logging.info("[STAGE 1] Loading CPLD programmer firmware")
+        self.usbctl.ubfw.load()
+        time.sleep(2)
         logging.info("[STAGE 2] Loading CPLD design")
         self.ioctl.program()
-        logging.info("[STAGE 3] Flashing EEPROM")
-        self.usbctl.fw.build()
         time.sleep(2)
+        logging.info("[STAGE 3] Flashing EEPROM")
         self.usbctl.fw.flash()
         logging.info("[STAGE 4] Loading USB firmware")
         self.usbctl.fw.load()
+        time.sleep(2)
+        self.test()
 
     def list_modules(self):
         def getmaddr(x):
@@ -260,15 +269,19 @@ class BMII():
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
 
-        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
+        args = self.parser.parse_args()
+
+        loglevels = [logging.WARN, logging.INFO, logging.DEBUG]
+        if args.verbose >= len(loglevels):
+            args.verbose = len(loglevels) - 1
+
+        logging.basicConfig(stream=sys.stderr, level=loglevels[args.verbose],
                 format='[%(levelname)s] %(message)s')
 
         logging.addLevelName(logging.DEBUG,   "\033[1;34mDEBUG\033[1;0m")
         logging.addLevelName(logging.INFO,    "\033[1;32mINFO\033[1;0m")
         logging.addLevelName(logging.WARNING, "\033[1;33mWARN\033[1;0m")
         logging.addLevelName(logging.ERROR,   "\033[1;31mERROR\033[1;0m")
-
-        args = self.parser.parse_args()
 
         for m in args.m:
             spec = importlib.util.spec_from_file_location("bmii.modules", m)
@@ -282,16 +295,19 @@ class BMII():
                 i.default(self)
 
         if args.action == "get":
-            drv = self.modules.__getattribute__(args.module).drv
+            drv = self.modules.get_module(args.module).drv
             cr = drv.get_creg(args.reg)
             print(hex(int(cr)))
         elif args.action == "set":
-            drv = self.modules.__getattribute__(args.module).drv
-            cr = drv.__getattr__(args.reg)
+            drv = self.modules.get_module(args.module).drv
+            cr = drv.get_creg(args.reg)
             cr.write(args.value)
         elif args.action == "detect":
             try:
                 self.usbctl.drv.attach()
+                print("Bus: {}, Address: {}".\
+                        format(self.usbctl.drv.dev.bus,
+                            self.usbctl.drv.dev.address))
             except IOError as e:
                 logging.error("%s", e)
         elif args.action == "build":
@@ -301,8 +317,17 @@ class BMII():
                 self.ioctl.build()
             elif args.buildtype == "usbctl":
                 self.usbctl.fw.build()
+            elif args.buildtype == "ub":
+                self.usbctl.ubfw.build()
         elif args.action == "program":
-            self.program()
+            if args.buildtype == "all":
+                self.program_all()
+            elif args.buildtype == "ioctl":
+                self.ioctl.load()
+            elif args.buildtype == "usbctl":
+                self.usbctl.fw.load()
+            elif args.buildtype == "ub":
+                self.usbctl.ubfw.load()
         elif args.action == "test":
             self.test()
         elif args.action == "simulate":
