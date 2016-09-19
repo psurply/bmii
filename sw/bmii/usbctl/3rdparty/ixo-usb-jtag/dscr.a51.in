@@ -22,8 +22,8 @@
 
         .module usb_descriptors
 
-        VID              = 0x16C0         ; Vendor ID 0x16C0  
-        PID              = 0x06AD         ; Product ID 0x06AD 
+        VID              = 0x09FB         ; Vendor ID 0x09FB  
+        PID              = 0x6001         ; Product ID 0x6001 
         VERSION          = 0x0004         ; Product Version (4 indicates *BM device) 
         USB_VER          = 0x0110         ; Support USB version 1.10 
         USB_ATTR         = 0x80           ; Bus powered, not self-powered, no remote wakeup
@@ -288,8 +288,8 @@ str2:   .db        str2_end - str2
         .db        'A, 0
         .db        'G, 0
         .db        '-, 0
-        .db        'I, 0
-        .db        'F, 0
+        .db        'B, 0
+        .db        'M, 0
 str2_end:
 
         SI_SERIAL = 3
