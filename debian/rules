@@ -1,0 +1,77 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+UPSTREAM_VERSION=$(shell dpkg-parsechangelog | sed -e '/^Version/!d' -e 's/^Version: //g' -e's/-[^-]*$$//')
+UPSTREAM_REVISION=$(shell echo v$(UPSTREAM_VERSION))
+UPSTREAM_GIT=http://github.com/mithro/ixo-usb-jtag.git
+UPSTREAM_CHECKOUT=ixo-usb-jtag-$(UPSTREAM_VERSION)
+
+DEB_BUILD_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH_CPU)
+
+HARDWARE=hw_basic hw_saxo_l hw_xpcu_i hw_xpcu_x hw_nexys hw_opsis
+
+get-orig-source:
+	git clone $(UPSTREAM_GIT) $(UPSTREAM_CHECKOUT)
+	cd $(UPSTREAM_CHECKOUT); git checkout $(UPSTREAM_REVISION)
+	tar -zcf ../ixo-usb-jtag_$(UPSTREAM_VERSION).orig.tar.gz $(UPSTREAM_CHECKOUT)
+	rm -rf $(UPSTREAM_CHECKOUT)
+
+build: build-arch build-indep
+
+build-arch:
+# We have nothing to do by default.
+
+build-indep: build-indep-stamp
+build-indep-stamp:
+	dh_testdir
+
+	mkdir -p output
+	for HW in $(HARDWARE); do \
+		make clean || exit 1; \
+		HARDWARE=$$HW $(MAKE) || exit 1; \
+		cp usbjtag.hex ./output/$$HW.hex || exit 1; \
+		make clean || exit 1; \
+	done
+	touch build-indep-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+
+install: build-indep
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	
+	mkdir -p $(CURDIR)/debian/ixo-usb-jtag/lib/firmware/ixo-usb-jtag
+	for HW in $(HARDWARE); do install -m644 ./output/$$HW.hex $(CURDIR)/debian/ixo-usb-jtag/lib/firmware/ixo-usb-jtag; done
+	mkdir -p $(CURDIR)/debian/ixo-usb-jtag/lib/udev/rules.d
+	install -m644 scripts/ixo-usb-jtag.rules $(CURDIR)/debian/ixo-usb-jtag/lib/udev/rules.d/85-ixo-usb-jtag.rules
+
+# Build architecture-independent files here.
+binary-indep: build-indep install
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+	dh_lintian
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb -- -Zxz
+
+# Build architecture-dependent files here.
+binary-arch: build-indep install
+# We have nothing to do by default.
+
+binary: binary-indep binary-arch
+.PHONY: build build-arch build-indep clean binary-indep binary-arch binary install
