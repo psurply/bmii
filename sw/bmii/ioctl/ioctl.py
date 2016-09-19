@@ -1,6 +1,8 @@
 from migen import *
+import logging
 import os
 import subprocess
+import sys
 
 from bmii.ioctl.iomodule import *
 from bmii.ioctl.platform import BMIIPlatform
@@ -42,6 +44,7 @@ class IOCtl(Module):
         return self
 
     def build(self):
+        logging.debug("Building IO controller design...")
         plat = BMIIPlatform()
         self.nb.connect_platform(plat)
         self.sb.connect_platform(plat)
@@ -55,9 +58,45 @@ class IOCtl(Module):
                     | plat.request("clk3"))
 
         plat.build(self)
+        logging.info("IO controller design built")
         return plat
 
+    def detect(self):
+        logging.debug("Scanning IO controller...")
+        with subprocess.Popen(["jtagconfig", "--enum"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE) as proc:
+            proc.wait()
+            msg = proc.stdout.read().split(b"\n") + proc.stderr.read().split(b"\n")
+            msg = filter(lambda x: len(x) > 0, msg)
+            msg = [str(x)[2:-1] for x in msg]
+
+            if proc.returncode != 0:
+                logging.error("%s", msg[0])
+                raise IOError(msg[0])
+            else:
+                info = msg[0].strip().split(" ")
+                logging.info("Probe: %s", " ".join(info[1:]))
+                if msg[1].strip().split(" ")[0] == "Unable":
+                    logging.error("%s", msg[1])
+                    raise IOError(msg[1])
+                else:
+                    info = msg[1].strip().split(" ")
+                    logging.info("Model: %s", info[3])
+                    logging.info("IDCODE: %s", info[0])
+
     def program(self):
-        plat = self.build()
-        subprocess.run(["quartus_pgm", "-m", "jtag",
-                         "-o", "p;build/top.pof"], check=True)
+        try:
+            self.detect()
+            logging.debug("Programming IO controller... ")
+
+            if not os.path.exists(os.path.join("build", "top.pof")):
+                logging.warn("Cannot find IO Controller design file")
+                logging.warn("Trying to build it")
+                self.build()
+            subprocess.run(["quartus_pgm", "-m", "jtag",
+                   "-o", "p;build/top.pof"])
+            logging.info("IO Controller configured")
+        except:
+            logging.error("Cannot configure IO controller")
+            sys.exit(2)

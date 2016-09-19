@@ -1,4 +1,5 @@
 from migen import *
+import logging
 from bmii.ioctl.iomodule import CtrlReg, CtrlRegDir, IOSignalDir
 
 PINMUX_WIDTH = 2
@@ -25,6 +26,7 @@ class Pin(Module):
         self.comb += scan.eq(self.t.i)
 
     def __iadd__(self, iosignal):
+        logging.debug("Connecting %s to %s", iosignal.name, self.name)
         if iosignal.direction == IOSignalDir.IN:
             self.comb += iosignal.eq(self.t.i)
             self.iosignal_in.append(iosignal)

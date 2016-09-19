@@ -1,5 +1,7 @@
 import os
+import logging
 import subprocess
+import sys
 import usb
 
 from bmii.usbctl.utils import ninja_syntax
@@ -102,8 +104,11 @@ class Firmware():
 
 
     def build(self):
+        logging.debug("Preparing USB controller firmware build system... ")
         self.prepare()
+        logging.debug("Building USB controller firmware... ")
         subprocess.run(["ninja", "-f", self.buildfile], check=True)
+        logging.info("USB controller firmware built")
 
 
     def find_devpath(self):
@@ -112,15 +117,16 @@ class Firmware():
         for i in ids:
             dev = usb.core.find(idVendor=i[0], idProduct=i[1])
             if dev != None:
+                logging.debug("Found device (%03d:%03d)", dev.bus, dev.address)
                 return os.path.join(os.sep, "dev", "bus", "usb",
                         "%03d" % dev.bus,
                         "%03d" % dev.address)
-        raise IOError("Cannot find usb device")
+        logging.error("Cannot find device")
+        sys.exit(2)
 
 
     def fxload(self, *args):
         subprocess.run(["fxload",
-                "-v",
                 "-t", "fx2lp",
                 "-I", self.ihex,
                 "-D", self.find_devpath()] + list(args),
@@ -128,9 +134,13 @@ class Firmware():
 
 
     def load(self):
+        logging.debug("Loading USB controller firmware")
         self.fxload()
+        logging.info("USB controller firmware loaded")
 
 
     def flash(self):
+        logging.debug("Flashing USB controller firmware")
         self.fxload("-c", "0x01",
                 "-s", "/lib/firmware/Vend_Ax.hex")
+        logging.info("USB controller firmware flashed")
