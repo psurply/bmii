@@ -1,0 +1,8 @@
+# Give everyone permission to the ixo-usb-jtag device
+ACTION=="add", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="06ad", MODE="666"
+
+# Digilent Atlys board
+SUBSYSTEM=="usb", ACTION=="add", ATTRS{idVendor}=="1443", ATTRS{idProduct}=="0007", RUN+="/sbin/fxload -D $tempnode -t fx2lp -I /lib/firmware/ixo-usb-jtag/hw_nexys.hex"
+
+# Numato Opsis board - Failsafe Mode (http://opsis.hdmi2usb.tv/features/usb-peripheral.html#failsafe-mode-unable-to-read-eeprom)
+SUBSYSTEM=="usb", ACTION=="add", ATTRS{idVendor}=="2a19", ATTRS{idProduct}=="5440", RUN+="/sbin/fxload -D $tempnode -t fx2lp -I /lib/firmware/ixo-usb-jtag/hw_opsis.hex"

@@ -1,0 +1,20 @@
+Source: ixo-usb-jtag
+Maintainer: TimVideos Developers <timvideos@googlegroups.com>
+Uploaders: Tim 'mithro' Ansell <mithro@mithis.com>
+Section: misc
+Priority: extra
+Build-Depends: debhelper (>= 7), sdcc
+Standards-Version: 3.9.3
+Homepage: http://github.com/mithro/ixo-usb-jtag
+
+Package: ixo-usb-jtag
+Architecture: all
+Depends: ${misc:Depends} fxload
+Suggests: urjtag
+Description: Firmware for USB JTAG programmers.
+ .
+ This firmware allows a USB-capable microcontroller - currently that's
+ primarily the Cypress FX2 EZ-USB family, or an FTDI FT245 in combination with
+ a CPLD - to act like an Altera USB-Blaster JTAG pod, which in turn may allow
+ you to use tools you'd normally use with the Altera USB-Blaster, including
+ available Linux tools such as UrJTAG.
