@@ -1,6 +1,7 @@
 #! /usr/bin/bmii -m
 
 from bmii import *
+from bmii.ioctl.testbench import *
 
 
 class SkelIOModule(IOModule):
@@ -19,11 +20,36 @@ class SkelIOModule(IOModule):
         self.comb += self.cregs.STATUS.eq(self.iosignals.IN)
 
 
+class SkelTestCase(IOModuleTestCase(SkelIOModule())):
+    """Skel simulation test bench (optional)
+
+    Example:
+        $ bmii -m skel simulate skel
+    """
+    def test_pb(self):
+        def gen():
+            yield self.tb.iomodule.iosignals.IN.eq(0)
+            yield
+            yield from self.ibus_read_creg(self.tb.iomodule.cregs.STATUS)
+            yield
+
+            self.assertEqual((yield self.tb.ibus_m.miso), 0)
+
+            yield self.tb.iomodule.iosignals.IN.eq(1)
+            yield
+            yield from self.ibus_read_creg(self.tb.iomodule.cregs.STATUS)
+            yield
+
+            self.assertEqual((yield self.tb.ibus_m.miso), 1)
+
+        self.run_with(gen())
+
+
 class Skel(BMIIModule):
     """ Skeleton of a BMII Module """
 
     def __init__(self):
-        BMIIModule.__init__(self, SkelIOModule())
+        BMIIModule.__init__(self, SkelIOModule(), SkelTestCase)
 
     @classmethod
     def default(cls, bmii):
