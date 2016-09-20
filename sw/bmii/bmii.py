@@ -5,11 +5,9 @@ import sys
 import time
 import unittest
 
-from bmii.ioctl import IOCtl
-from bmii.usbctl import USBCtl
-
+from bmii.ioctl import *
+from bmii.usbctl import *
 from bmii.test import *
-
 
 
 class DrvCReg():
@@ -183,6 +181,13 @@ class BMII():
         get_parser.add_argument("reg", type=str)
         get_parser.set_defaults(action="get")
 
+        clk_parser = self.subparser.add_parser(
+                name="clk",
+                help="set clock speed")
+        clk_parser.add_argument("clk",
+                choices=["12M", "24M", "48M"])
+        clk_parser.set_defaults(action="clk")
+
         list_parser = self.subparser.add_parser(
                 name="list",
                 help="list IOModules")
@@ -302,6 +307,13 @@ class BMII():
             drv = self.modules.get_module(args.module).drv
             cr = drv.get_creg(args.reg)
             cr.write(args.value)
+        elif args.action == "clk":
+            spd = {
+                "12M" : CPUSpd.CLK_12M,
+                "24M" : CPUSpd.CLK_24M,
+                "48M" : CPUSpd.CLK_48M,
+            }
+            self.usbctl.drv.set_cpu_speed(spd[args.clk])
         elif args.action == "detect":
             try:
                 self.usbctl.drv.attach()

@@ -20,18 +20,6 @@ void resume_isr(void) __interrupt RESUME_ISR
     RESI = 0;
 }
 
-static inline void set_cpu_freq(void)
-{
-    enum spd {
-        CLK_12M = 0,
-        CLK_24M,
-        CLK_48M
-    };
-
-    const BYTE current_spd = CLK_12M;
-    CPUCS = (CPUCS & ~bmCLKSPD) | (current_spd << 3);
-}
-
 static void renumerate(void)
 {
     if(!(USBCS & bmRENUM))
@@ -51,7 +39,7 @@ static void deassert_jtage(void)
 static void init(void)
 {
     deassert_jtage();
-    set_cpu_freq();
+    set_cpu_freq(CLK_12M);
 
     ERESI = 1;
     EA = 1;

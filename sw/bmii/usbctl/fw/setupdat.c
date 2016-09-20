@@ -3,6 +3,7 @@
 #include "led.h"
 #include "fx2macros.h"
 #include "fx2regs.h"
+#include "timer.h"
 #include "setupdat.h"
 
 extern __code WORD dev_dscr;
@@ -74,6 +75,7 @@ static int handle_vendor_command(void)
     enum vendor_cmd {
         SELECT_CREG = 0xF0,
         LOAD_RDFIFO = 0xF1,
+        SET_CPU_SPD = 0xF2,
     };
 
     switch (SETUPDAT[1]) {
@@ -82,6 +84,9 @@ static int handle_vendor_command(void)
             return 0;
         case LOAD_RDFIFO:
             io_load_rdfifo(SETUPDAT[2]);
+            return 0;
+        case SET_CPU_SPD:
+            set_cpu_freq(SETUPDAT[2]);
             return 0;
         default:
             return 1;

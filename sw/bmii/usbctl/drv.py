@@ -10,6 +10,13 @@ class bmRequestType(IntEnum):
 class bRequest(IntEnum):
     SELECT_CREG = 0xF0
     LOAD_RDFIFO = 0xF1
+    SET_CPU_SPD = 0xF2
+
+
+class CPUSpd(IntEnum):
+    CLK_12M = 0
+    CLK_24M = 1
+    CLK_48M = 2
 
 
 class Driver():
@@ -84,3 +91,10 @@ class Driver():
         logging.info("IDCODE: %X", idcode)
         if (idcode != 0xA5):
             logging.warning("Unknown IDCODE")
+
+    def set_cpu_speed(self, freq):
+        assert type(freq) is CPUSpd
+        self.attach()
+        logging.debug("Setting CPU clock at %sHz", str(freq)[-3:])
+        self.dev.ctrl_transfer(bmRequestType.VENDOR_WR,
+                bRequest.SET_CPU_SPD, freq)
