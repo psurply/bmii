@@ -18,6 +18,7 @@ def main():
 
     b.cli()
 
+    la.reset()
     la.capture()
     la.show()
 

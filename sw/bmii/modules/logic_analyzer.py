@@ -90,8 +90,6 @@ class LogicAnalyser(BMIIModule):
         self.drv.START = 0
 
     def capture(self):
-        self.reset()
-
         if int(self.drv.STATUS) == LogicAnalyserState.WAITING:
             logging.info("Waiting for trigger...")
             while int(self.drv.STATUS) == LogicAnalyserState.WAITING:
