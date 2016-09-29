@@ -45,11 +45,17 @@ class Driver():
     def __init__(self, bmii_module):
         object.__setattr__(self, "bmii_module", bmii_module)
 
+    def check_shadowed(self):
+        if self.bmii_module.iomodule.shadowed:
+            logging.warning("Module shadowed: operations on control registers are useless")
+
     def __getattr__(self, creg_name):
+        self.check_shadowed()
         return DrvCReg(self.bmii_module.usbctl,
                 getattr(self.bmii_module.iomodule.cregs, creg_name))
 
     def __setattr__(self, creg_name, value):
+        self.check_shadowed()
         creg = DrvCReg(self.bmii_module.usbctl,
                 getattr(self.bmii_module.iomodule.cregs, creg_name))
         creg.write(value)
@@ -111,9 +117,9 @@ class BMIIModules():
             sys.exit(2)
 
 class BMII():
-    def __init__(self):
+    def __init__(self, shrink=False):
         self.usbctl = USBCtl()
-        self.ioctl = IOCtl()
+        self.ioctl = IOCtl(shrink)
 
         self.modules = BMIIModules(self.usbctl)
 
@@ -244,7 +250,8 @@ class BMII():
 
         for m in sorted(self.modules.__dict__.values(), key=getmaddr):
             if isinstance(m, BMIIModule):
-                print("{}: {}".format(hex(m.iomodule.addr), m.iomodule.name))
+                print("{}: {}{}".format(hex(m.iomodule.addr), m.iomodule.name,
+                    ["", " (shadowed)"][int(m.iomodule.shadowed)]))
                 for r in sorted(m.iomodule.cregs.__dict__.values(), key=getraddr):
                     if isinstance(r, CtrlReg):
                         print("\t{}: {} ({})".format(hex(r.addr), r.name,

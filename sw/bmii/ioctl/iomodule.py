@@ -118,9 +118,10 @@ class IOSignals(Module):
 
 
 class IOModule(Module):
-    def __init__(self, name):
+    def __init__(self, name, shadowed=False):
         self.name = name
         self.addr = 0
+        self.shadowed = shadowed
         self.ibus = Record(IBus)
 
         self.select = Signal()
@@ -131,8 +132,9 @@ class IOModule(Module):
 
     def set_addr(self, addr):
         self.addr = addr
-        self.comb += self.select.eq(self.ibus.req &
-                (self.ibus.maddr == self.addr))
+        if not self.shadowed:
+            self.comb += self.select.eq(self.ibus.req &
+                    (self.ibus.maddr == self.addr))
 
     def __repr__(self):
         return "<IOModule " + self.name + "@" + hex(self.addr) + " at " + hex(id(self)) + ">"

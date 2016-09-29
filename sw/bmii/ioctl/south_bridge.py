@@ -8,8 +8,8 @@ IO_BANKS        = 2
 LED_WIDTH       = 2
 
 class SouthBridge(IOModule):
-    def __init__(self, name):
-        IOModule.__init__(self, name)
+    def __init__(self, name, shadowed):
+        IOModule.__init__(self, name, shadowed=shadowed)
 
         self.pins = define_bmii_pins(self.cregs)
         self.submodules += self.pins

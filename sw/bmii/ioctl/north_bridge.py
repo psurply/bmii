@@ -48,7 +48,8 @@ class NorthBridge(IOModule):
         self.comb += self.fdt.o.eq(self.ibus_m.miso)
 
     def connect(self, iomodule):
-        self.ibus_slaves.append(iomodule.ibus)
+        if not iomodule.shadowed:
+            self.ibus_slaves.append(iomodule.ibus)
 
     def connect_platform(self, plat):
         self.comb += self.ibus_m.connect(*self.ibus_slaves)

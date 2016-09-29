@@ -25,11 +25,11 @@ class IOModules():
 
 
 class IOCtl(Module):
-    def __init__(self):
+    def __init__(self, shrink=False):
         self.reset = ResetSignal("sys")
 
         self.nb = NorthBridge("northbridge")
-        self.sb = SouthBridge("southbridge")
+        self.sb = SouthBridge("southbridge", shadowed=shrink)
 
         self.iomodules = IOModules([self.nb])
         self.iomodules += self.nb
