@@ -13,6 +13,10 @@ class VideoIOModule(IOModule):
         raise NotImplementedError
 
     @property
+    def vram_drive_addr_logic(self):
+        raise NotImplementedError
+
+    @property
     def vram_read_logic(self):
         raise NotImplementedError
 
@@ -64,11 +68,12 @@ class VideoIOModule(IOModule):
         self.display_enabled = Signal()
         self.h_display = Signal()
         self.v_display = Signal()
+        self.next_h_counter = Signal(10)
         self.h_counter = Signal(10)
         self.v_counter = Signal(10)
 
         ## VRAM Signals
-        self.vram_data = Signal(VRAM_DATA_SIZE)
+        self.vram_din = Signal(VRAM_DATA_SIZE)
         self.vram_addr = Signal(VRAM_ADDR_SIZE)
 
         # Logic
@@ -78,7 +83,6 @@ class VideoIOModule(IOModule):
         drive_pxl = Signal()
         drive_vram_d = Signal()
         vram_wr = Signal()
-        vram_din = Signal(VRAM_DATA_SIZE)
         vram_dout = Signal(VRAM_DATA_SIZE)
 
         self.comb += self.iosignals.VRAM_WR.eq(vram_wr)
@@ -87,7 +91,7 @@ class VideoIOModule(IOModule):
             self.comb += getattr(self.iosignals, "VRAM_ADDR{}".format(i)).eq(self.vram_addr[i])
         for i in range(VRAM_DATA_SIZE):
             self.comb += getattr(self.iosignals, "VRAM_DOUT{}".format(i)).eq(vram_dout[i])
-            self.comb += vram_din[i].eq(getattr(self.iosignals, "VRAM_DIN{}".format(i)))
+            self.comb += self.vram_din[i].eq(getattr(self.iosignals, "VRAM_DIN{}".format(i)))
             self.comb += getattr(self.iosignals, "VRAM_DDIR{}".format(i)).eq(drive_vram_d)
 
         vram_write_fifo = SyncFIFO(VRAM_DATA_SIZE, 4)
@@ -104,7 +108,7 @@ class VideoIOModule(IOModule):
         fsm_vram = FSM()
 
         fsm_vram.act("VRAM_WRITE",
-                NextValue(drive_pxl, 1),
+                NextValue(drive_pxl, 0),
                 If(vram_write_fifo.readable,
                     NextValue(vram_dout, vram_write_fifo.dout),
                     NextValue(drive_vram_d, 1),
@@ -116,7 +120,7 @@ class VideoIOModule(IOModule):
                     NextValue(drive_vram_d, 0),
                     NextValue(vram_wr, 1),
                     NextState("VRAM_READ"),
-                    *self.vram_read_logic))
+                    *self.vram_drive_addr_logic))
 
         fsm_vram.act("VRAM_WRITE_LATCH",
                 NextValue(drive_pxl, 1),
@@ -125,9 +129,9 @@ class VideoIOModule(IOModule):
                 NextState("VRAM_WRITE"))
 
         fsm_vram.act("VRAM_READ",
-                NextValue(drive_pxl, 0),
-                NextValue(self.vram_data, vram_din),
-                NextState("VRAM_WRITE"))
+                NextValue(drive_pxl, 1),
+                NextState("VRAM_WRITE"),
+                *self.vram_read_logic)
 
         self.submodules += vram_write_fifo
         self.submodules += fsm_vram
