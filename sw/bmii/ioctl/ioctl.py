@@ -1,4 +1,5 @@
 from migen import *
+from migen.genlib.io import CRG
 import logging
 import os
 import subprocess
@@ -56,6 +57,8 @@ class IOCtl(Module):
         self.comb += dummy.eq(plat.request("clk0")
                     | plat.request("clk1")
                     | plat.request("clk3"))
+
+        self.submodules.crg = CRG(plat.request("clk2"))
 
         plat.build(self)
         logging.info("IO controller design built")
