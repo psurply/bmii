@@ -17,13 +17,18 @@ class BasicVideoIOModule(VideoIOModule):
         return [self.px.eq(bg ^ fg)]
 
     @property
-    def vram_read_logic(self):
+    def vram_drive_addr_logic(self):
         return [
             NextValue(self.vram_addr, self.sprite_addr +
-                self.h_counter[0:5] + (self.v_counter[1:5] << 5))
+                self.next_h_counter[0:5] + (self.v_counter[1:5] << 5))
         ]
 
+    @property
+    def vram_read_logic(self):
+        return [NextValue(self.vram_data, self.vram_din)]
+
     def __init__(self):
+        self.vram_data = Signal(3)
         VideoIOModule.__init__(self, VideoConfig.CFG2)
 
 
