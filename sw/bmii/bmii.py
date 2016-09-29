@@ -234,7 +234,7 @@ class BMII():
         self.usbctl.fw.flash()
         logging.info("[STAGE 4] Loading USB firmware")
         self.usbctl.fw.load()
-        time.sleep(2)
+        time.sleep(5)
         self.test()
 
     def list_modules(self):
@@ -342,7 +342,7 @@ class BMII():
             if args.buildtype == "all":
                 self.program_all()
             elif args.buildtype == "ioctl":
-                self.ioctl.load()
+                self.ioctl.program()
             elif args.buildtype == "usbctl":
                 self.usbctl.fw.load()
             elif args.buildtype == "ub":
