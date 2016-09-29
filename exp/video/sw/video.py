@@ -1,5 +1,14 @@
 from bmii import *
 from migen.genlib.fifo import SyncFIFO
+H_FRONT_PORCH_LEN   = 16
+H_SYNC_PULSE_LEN    = 96
+H_BACK_PORCH_LEN    = 48
+H_DISPLAY_LEN       = 640
+
+V_FRONT_PORCH_LEN   = 10
+V_SYNC_PULSE_LEN    = 2
+V_BACK_PORCH_LEN    = 33
+V_DISPLAY_LEN       = 480
 
 
 class VideoConfig(Enum):
@@ -158,38 +167,43 @@ class VideoIOModule(IOModule):
                     NextState(current_state))
 
         fsm_h.act("FRONT_PORCH",
-                self.iosignals.VGA_HS.eq(0),
-                self.h_display.eq(0),
-                wait(self.h_counter, 16, "FRONT_PORCH", "SYNC"))
-        fsm_h.act("SYNC",
                 self.iosignals.VGA_HS.eq(1),
                 self.h_display.eq(0),
-                wait(self.h_counter, 96, "SYNC", "BACK_PORCH"))
-        fsm_h.act("BACK_PORCH",
+                wait(self.h_counter, H_FRONT_PORCH_LEN, "FRONT_PORCH", "SYNC"))
+        fsm_h.act("SYNC",
                 self.iosignals.VGA_HS.eq(0),
                 self.h_display.eq(0),
-                wait(self.h_counter, 48, "BACK_PORCH", "DISPLAY"))
+                wait(self.h_counter, H_SYNC_PULSE_LEN, "SYNC", "BACK_PORCH"))
+        fsm_h.act("BACK_PORCH",
+                self.iosignals.VGA_HS.eq(1),
+                self.h_display.eq(0),
+                If(self.h_counter >= H_BACK_PORCH_LEN - 2,
+                    self.next_h_counter.eq(self.h_counter - (H_BACK_PORCH_LEN - 2))),
+                wait(self.h_counter, H_BACK_PORCH_LEN, "BACK_PORCH", "DISPLAY"))
         fsm_h.act("DISPLAY",
-                self.iosignals.VGA_HS.eq(0),
+                self.iosignals.VGA_HS.eq(1),
                 self.h_display.eq(1),
-                wait(self.h_counter, 640, "DISPLAY", "FRONT_PORCH"))
+                If(self.h_counter < H_DISPLAY_LEN - 2,
+                    self.next_h_counter.eq(self.h_counter + 2)).\
+                Else(self.next_h_counter.eq(self.h_counter - (H_DISPLAY_LEN - 2))),
+                wait(self.h_counter, H_DISPLAY_LEN, "DISPLAY", "FRONT_PORCH"))
 
         fsm_v.act("FRONT_PORCH",
-                self.iosignals.VGA_VS.eq(0),
-                self.v_display.eq(0),
-                wait(self.v_counter, 10, "FRONT_PORCH", "SYNC"))
-        fsm_v.act("SYNC",
                 self.iosignals.VGA_VS.eq(1),
                 self.v_display.eq(0),
-                wait(self.v_counter, 2, "SYNC", "BACK_PORCH"))
-        fsm_v.act("BACK_PORCH",
+                wait(self.v_counter, V_FRONT_PORCH_LEN, "FRONT_PORCH", "SYNC"))
+        fsm_v.act("SYNC",
                 self.iosignals.VGA_VS.eq(0),
                 self.v_display.eq(0),
-                wait(self.v_counter, 33, "BACK_PORCH", "DISPLAY"))
+                wait(self.v_counter, V_SYNC_PULSE_LEN, "SYNC", "BACK_PORCH"))
+        fsm_v.act("BACK_PORCH",
+                self.iosignals.VGA_VS.eq(1),
+                self.v_display.eq(0),
+                wait(self.v_counter, V_BACK_PORCH_LEN, "BACK_PORCH", "DISPLAY"))
         fsm_v.act("DISPLAY",
-                self.iosignals.VGA_VS.eq(0),
+                self.iosignals.VGA_VS.eq(1),
                 self.v_display.eq(1),
-                wait(self.v_counter, 480, "DISPLAY", "FRONT_PORCH"))
+                wait(self.v_counter, V_DISPLAY_LEN, "DISPLAY", "FRONT_PORCH"))
 
         self.submodules += fsm_h
         self.submodules += fsm_v
