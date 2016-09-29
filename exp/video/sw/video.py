@@ -1,5 +1,8 @@
 from bmii import *
 from migen.genlib.fifo import SyncFIFO
+import png
+
+
 H_FRONT_PORCH_LEN   = 16
 H_SYNC_PULSE_LEN    = 96
 H_BACK_PORCH_LEN    = 48
@@ -304,8 +307,31 @@ class Video(BMIIModule):
     def default(cls, bmii):
         return cls.generate(bmii, VideoConfig.CFG1)
 
-    def write_vram(self, addr, *data):
+
+    def set_vram_cursor(self, addr):
+        logging.debug("VRAM: Set cursor to %x", addr)
         self.drv.ADDRH = (addr >> 8) & 0xFF
         self.drv.ADDRL = addr & 0xFF
+
+    def write_vram(self, addr, *data):
+        if addr != None:
+            self.set_vram_cursor(addr)
         for i in data:
             self.drv.DATA = i
+
+    def load_sprite_from_png(self, filename, addr):
+        logging.debug("VRAM: Loading %s at %x", filename, addr)
+        reader = png.Reader(filename=filename)
+        pic = reader.read()
+
+        self.set_vram_cursor(addr)
+        for line in pic[2]:
+            i = 0
+            word = 0
+            for px in line:
+                word |= px << i
+                i += pic[3]['bitdepth']
+                if i > 7:
+                    self.write_vram(None, word)
+                    i = 0
+                    word = 0
