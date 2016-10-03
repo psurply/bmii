@@ -157,7 +157,7 @@ class BMII():
                 description="Program BMII",
                 help="Program BMII")
         program_parser.add_argument("buildtype",
-                choices=["all", "ioctl", "usbctl", "ub"],
+                choices=["all", "ioctl", "usbctl", "ub", "eeprom"],
                 default="all")
         program_parser.set_defaults(action="program")
 
@@ -343,6 +343,8 @@ class BMII():
                 self.program_all()
             elif args.buildtype == "ioctl":
                 self.ioctl.program()
+            elif args.buildtype == "eeprom":
+                self.usbctl.fw.flash()
             elif args.buildtype == "usbctl":
                 self.usbctl.fw.load()
             elif args.buildtype == "ub":
