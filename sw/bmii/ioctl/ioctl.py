@@ -27,8 +27,6 @@ class IOModules():
 
 class IOCtl(Module):
     def __init__(self, shrink=False):
-        self.reset = ResetSignal("sys")
-
         self.nb = NorthBridge("northbridge")
         self.sb = SouthBridge("southbridge", shadowed=shrink)
 
@@ -50,15 +48,13 @@ class IOCtl(Module):
         self.nb.connect_platform(plat)
         self.sb.connect_platform(plat)
 
-        self.comb += self.reset.eq(plat.request("reset0")
-                    | plat.request("reset1"))
-
         dummy = Signal()
         self.comb += dummy.eq(plat.request("clk0")
                     | plat.request("clk1")
                     | plat.request("clk3"))
 
-        self.submodules.crg = CRG(plat.request("clk2"))
+        self.submodules.crg = CRG(plat.request("clk2"),
+                ~plat.request("reset0") | ~plat.request("reset1"))
 
         plat.build(self)
         logging.info("IO controller design built")
