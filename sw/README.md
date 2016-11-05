@@ -6,6 +6,8 @@ fully programmable with [Migen](https://github.com/m-labs/migen).
 
 It is based on an Altera Max V CPLD and a Cypress FX2LP.
 
+![](https://blog.lse.epita.fr/medias/images/bmii/main2.jpg)
+
 ## Example: a Pulse-Width Modulation module
 
 ### Define the RTL
