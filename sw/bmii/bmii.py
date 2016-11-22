@@ -68,6 +68,22 @@ class Driver():
             sys.exit(2)
 
 
+class InterruptHandler(object):
+    def __init__(self, func, intr):
+        self.func = func
+        self.intr = intr
+        self.module = None
+
+    def __call__(self, bmii):
+        self.func(self.module, bmii)
+
+
+def interrupt_handler(intr):
+    def wrapper(handler):
+        return InterruptHandler(handler, intr)
+    return wrapper
+
+
 class BMIIModule():
     def __init__(self, iomodule, *testcases):
         self.iomodule = iomodule
@@ -77,6 +93,16 @@ class BMIIModule():
                 map((lambda x : \
                 unittest.defaultTestLoader.loadTestsFromTestCase(x)),
                 testcases)
+
+        self.interrupt_handlers = {}
+        for f in self.__class__.__dict__.values():
+            if isinstance(f, InterruptHandler):
+                f.module = self
+                if not hasattr(self.iomodule.intrs, f.intr):
+                    raise AttributeError("{}'s iomodule has not interrupt line {}".\
+                                    format(self.__class__.__name__, f.intr))
+                intr = self.iomodule.intrs.__getattribute__(f.intr)
+                intr.handlers.append(f)
 
     def run_tests(self):
         logging.info("Simulating %s", self.iomodule.name)
@@ -210,6 +236,11 @@ class BMII():
         eval_parser.add_argument("cmd", type=str)
         eval_parser.set_defaults(action="eval")
 
+        run_parser = self.subparser.add_parser(
+                name="run",
+                help="Poll and handle intrrupts")
+        run_parser.set_defaults(action="run")
+
     def add_module(self, module):
         logging.debug("Adding module: %s", module.iomodule.name)
         self.modules += module
@@ -267,7 +298,7 @@ class BMII():
         logging.debug("Testing Northbridge...")
         for i in range(256):
             self.modules.northbridge.drv.SCRATCH = i
-            v = int(self.modules.northbridge.drv.SCRATCH) 
+            v = int(self.modules.northbridge.drv.SCRATCH)
             if v != i:
                 logging.error("SCRATCH register: wrote %x, read %x", i, v)
 
@@ -359,8 +390,28 @@ class BMII():
             print(self.pinout())
         elif args.action == "eval":
             print(eval(args.cmd))
+        elif args.action == "run":
+            self.run()
 
         self.args = args
+
+    def handle_interrupts(self):
+        evt = self.usbctl.drv.get_event()
+        if evt == 0xFF:
+            return
+        elif evt == 0:
+            logging.warning("Received spurious interrupt")
+        else:
+            logging.debug("Received interrupt #%d", evt)
+            handlers = self.modules.northbridge.iomodule.interrupts.get_handlers(evt)
+            for handler in handlers:
+                handler(self)
+            self.modules.northbridge.drv.EOI = evt
+
+    def run(self, interval=0.25):
+        while (True):
+            self.handle_interrupts()
+            time.sleep(interval)
 
     @classmethod
     def default(cls):

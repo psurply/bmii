@@ -5,12 +5,14 @@ import usb
 
 class bmRequestType(IntEnum):
     VENDOR_WR   = 0x40
+    VENDOR_RD   = 0xC0
 
 
 class bRequest(IntEnum):
     SELECT_CREG = 0xF0
     LOAD_RDFIFO = 0xF1
     SET_CPU_SPD = 0xF2
+    GET_EVENT   = 0xF3
 
 
 class CPUSpd(IntEnum):
@@ -98,3 +100,12 @@ class Driver():
         logging.debug("Setting CPU clock at %sHz", str(freq)[-3:])
         self.dev.ctrl_transfer(bmRequestType.VENDOR_WR,
                 bRequest.SET_CPU_SPD, freq)
+
+    def get_event(self):
+        self.attach()
+        return self.dev.ctrl_transfer(
+            bmRequestType=bmRequestType.VENDOR_RD,
+            bRequest=bRequest.GET_EVENT,
+            wValue=0,
+            wIndex=0,
+            data_or_wLength=1)[0]

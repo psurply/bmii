@@ -80,6 +80,7 @@ class BMIIFirmware(Firmware):
                 'gpif',
                 'gpifisr',
                 'io',
+                'intr',
                 'main',
                 'setupdat',
                 'timer',

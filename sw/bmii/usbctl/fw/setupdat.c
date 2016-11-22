@@ -1,4 +1,5 @@
 #include "eputils.h"
+#include "intr.h"
 #include "io.h"
 #include "led.h"
 #include "fx2macros.h"
@@ -76,6 +77,7 @@ static int handle_vendor_command(void)
         SELECT_CREG = 0xF0,
         LOAD_RDFIFO = 0xF1,
         SET_CPU_SPD = 0xF2,
+        GET_EVENT   = 0xF3,
     };
 
     switch (SETUPDAT[1]) {
@@ -87,6 +89,11 @@ static int handle_vendor_command(void)
             return 0;
         case SET_CPU_SPD:
             set_cpu_freq(SETUPDAT[2]);
+            return 0;
+        case GET_EVENT:
+            EP0BUF[0] = event_queue_dequeue();
+            EP0BCH = 0;
+            EP0BCL = 1;
             return 0;
         default:
             return 1;

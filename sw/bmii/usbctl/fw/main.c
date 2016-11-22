@@ -2,6 +2,7 @@
 #include "eputils.h"
 #include "gpif.h"
 #include "gpifisr.h"
+#include "intr.h"
 #include "io.h"
 #include "led.h"
 #include "fw.h"
@@ -57,6 +58,7 @@ static void init(void)
     enable_gpifdone();
 
     io_init();
+    int0_init();
 }
 
 void main(void)

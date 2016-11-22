@@ -46,7 +46,7 @@
 //          _________ _________ _________ _________ _________ _________ _________ _________
 //                                                                                         
 // AddrMode Same Val  Same Val  Same Val  Same Val  Same Val  Same Val  Same Val           
-// DataMode NO Data   NO Data   NO Data   NO Data   NO Data   NO Data   NO Data            
+// DataMode Activate  NO Data   NO Data   NO Data   NO Data   NO Data   NO Data            
 // NextData SameData  SameData  SameData  SameData  SameData  SameData  SameData           
 // Int Trig No Int    No Int    No Int    No Int    No Int    No Int    No Int             
 // IF/Wait  Wait 1    Wait 1    Wait 1    Wait 1    Wait 1    Wait 1    Wait 1             
@@ -57,9 +57,9 @@
 // Branch0                                                                                 
 // Re-Exec                                                                                 
 // Sngl/CRC Default   Default   Default   Default   Default   Default   Default            
-// CTL0         0         0         0         0         0         0         0         0    
+// CTL0         0         0         1         1         1         1         1         0    
 // CTL1         0         0         0         0         0         0         0         0    
-// CTL2         0         0         0         0         0         0         0         0    
+// CTL2         0         0         1         1         1         1         1         0    
 // CTL3         0         0         0         0         0         0         0         0    
 // CTL4         0         0         0         0         0         0         0         0    
 // CTL5         0         0         0         0         0         0         0         0    
@@ -160,8 +160,8 @@ const char xdata WaveData[128] =
 {                                      
 // Wave 0 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
+/* Opcode*/ 0x02,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x00,     0x00,     0x05,     0x05,     0x05,     0x05,     0x05,     0x00,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 // Wave 1 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,

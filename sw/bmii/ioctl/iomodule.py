@@ -117,6 +117,35 @@ class IOSignals(Module):
         return self
 
 
+class IntRequest(Signal):
+    def __init__(self, name, trigger):
+        self.name = name
+        self.handlers = []
+
+        self.trigger = trigger
+        self.pending = Signal()
+
+        self.ack = Signal()
+        self.eoi = Signal()
+
+        Signal.__init__(self, 1, name)
+
+
+class IntRequests(Module):
+    def __iadd__(self, intr):
+        self.sync += \
+                If(intr.ack,
+                    intr.eq(0)).\
+                Elif(intr.eoi,
+                    intr.pending.eq(0)).\
+                Elif(~intr.pending & intr.trigger,
+                    intr.eq(1),
+                    intr.pending.eq(1))
+
+        object.__setattr__(self, intr.name, intr)
+        return self
+
+
 class IOModule(Module):
     def __init__(self, name, shadowed=False):
         self.name = name
@@ -125,10 +154,15 @@ class IOModule(Module):
         self.ibus = Record(IBus)
 
         self.select = Signal()
+
         self.cregs = CtrlRegs(self, self.ibus, self.select)
-        self.iosignals = IOSignals()
         self.submodules += self.cregs
+
+        self.iosignals = IOSignals()
         self.submodules += self.iosignals
+
+        self.intrs = IntRequests()
+        self.submodules += self.intrs
 
     def set_addr(self, addr):
         self.addr = addr

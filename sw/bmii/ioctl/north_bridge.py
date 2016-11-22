@@ -1,4 +1,5 @@
 from migen import *
+from migen.genlib.coding import PriorityEncoder
 
 from bmii.ioctl.iomodule import *
 from bmii.ioctl.ibus import IBus
@@ -6,13 +7,52 @@ from bmii.ioctl.ibus import IBus
 FD_WIDTH    = 8
 INTR_WIDTH  = 2
 
+
+class IntCircuit(Module):
+    def __init__(self):
+        self.intr = Signal()
+        self.intr_number = Signal(8)
+        self.ack = Signal()
+        self.eoi_request = Signal()
+        self.eoi_number = Signal(8)
+        self.intrs = []
+
+    def __iadd__(self, intr):
+        self.intrs.append(intr)
+        intr_index = len(self.intrs)
+        self.comb += intr.ack.eq(self.ack & (self.intr_number == intr_index))
+        self.comb += intr.eoi.eq(self.eoi_request & (self.eoi_number == intr_index))
+
+        return self
+
+    def generate_circuit(self):
+        int_priority_encoder = PriorityEncoder(len(self.intrs) + 1)
+        self.submodules += int_priority_encoder
+
+        for i in range(len(self.intrs)):
+            self.comb += int_priority_encoder.i[i + 1].eq(self.intrs[i])
+
+        self.comb += self.intr_number.eq(int_priority_encoder.o)
+        self.comb += self.intr.eq(reduce(or_, [0] + self.intrs))
+
+    def get_handlers(self, intr_number):
+        return self.intrs[intr_number - 1].handlers
+
+
 class NorthBridge(IOModule):
     def __init__(self, name):
         IOModule.__init__(self, name)
         self.ibus_slaves = []
 
         self.cregs += CtrlReg("IDCODE", CtrlRegDir.RDONLY)
+        self.comb += self.cregs.IDCODE.eq(0xA5)
         self.cregs += CtrlReg("SCRATCH", CtrlRegDir.RDWR)
+        self.cregs += CtrlReg("EOI", CtrlRegDir.WRONLY)
+
+        self.ibus_m = Record(IBus)
+
+        self.fdt = TSTriple(FD_WIDTH)
+        self.fd = Signal(FD_WIDTH)
 
         self.ifclk = Signal()
         self.act = Signal()
@@ -20,14 +60,15 @@ class NorthBridge(IOModule):
         self.la = Signal()
         self.ioctl_rdy = Signal()
         self.iomodule_rdy = Signal()
+
+        # Interrupts
         self.intr = Signal(INTR_WIDTH)
-
-        self.fdt = TSTriple(FD_WIDTH)
-        self.fd = Signal(FD_WIDTH)
-
-        self.ibus_m = Record(IBus)
-
-        self.comb += self.cregs.IDCODE.eq(0xA5)
+        self.interrupts = IntCircuit()
+        self.submodules += self.interrupts
+        self.comb += self.intr[0].eq(~self.interrupts.intr)
+        self.comb += self.interrupts.ack.eq(self.la & self.act)
+        self.comb += self.interrupts.eoi_request.eq(self.cregs.EOI.wr_pulse)
+        self.comb += self.interrupts.eoi_number.eq(self.cregs.EOI)
 
         self.sync += self.ifclk.eq(~self.ifclk)
         self.comb += self.ioctl_rdy.eq(~self.act)
@@ -42,10 +83,17 @@ class NorthBridge(IOModule):
 
         # Operation type
         self.comb += self.ibus_m.wr.eq(self.wr)
-        self.comb += self.fdt.oe.eq(~self.ioctl_rdy & ~self.wr & ~self.la)
+
+        # Data bus
+        self.comb += self.fdt.oe.eq((~self.ioctl_rdy & ~self.wr & ~self.la)
+                | (~self.act & self.interrupts.intr))
 
         self.comb += self.ibus_m.mosi.eq(self.fdt.i)
-        self.comb += self.fdt.o.eq(self.ibus_m.miso)
+        self.comb += \
+                If(self.interrupts.intr,
+                    self.fdt.o.eq(self.interrupts.intr_number)).\
+                Else(self.fdt.o.eq(self.ibus_m.miso))
+
 
     def connect(self, iomodule):
         if not iomodule.shadowed:
@@ -54,6 +102,8 @@ class NorthBridge(IOModule):
     def connect_platform(self, plat):
         self.comb += self.ibus_m.connect(*self.ibus_slaves)
         self.specials += self.fdt.get_tristate(plat.request("fd"))
+
+        self.interrupts.generate_circuit()
 
         ctl = plat.request("ctl")
         rdy = plat.request("rdy")
