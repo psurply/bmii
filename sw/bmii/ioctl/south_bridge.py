@@ -30,5 +30,5 @@ class SouthBridge(IOModule):
 
         self.pins.SW.connect_realpin(sw)
 
-    def pinout(self):
-        return str(self.pins)
+    def display(self):
+        print(str(self.pins))

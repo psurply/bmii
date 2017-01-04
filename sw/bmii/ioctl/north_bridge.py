@@ -38,6 +38,11 @@ class IntCircuit(Module):
     def get_handlers(self, intr_number):
         return self.intrs[intr_number - 1].handlers
 
+    def display(self):
+        print("Interrupts:")
+        for i in range(len(self.intrs)):
+            print("  {}: {}".format(i, self.intrs[i].name))
+
 
 class NorthBridge(IOModule):
     def __init__(self, name):

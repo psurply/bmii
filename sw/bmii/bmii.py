@@ -103,6 +103,7 @@ class BMIIModule():
                                     format(self.__class__.__name__, f.intr))
                 intr = self.iomodule.intrs.__getattribute__(f.intr)
                 intr.handlers.append(f)
+                self.interrupt_handlers[f.intr] = f
 
     def run_tests(self):
         logging.info("Simulating %s", self.iomodule.name)
@@ -220,15 +221,10 @@ class BMII():
                 choices=["12M", "24M", "48M"])
         clk_parser.set_defaults(action="clk")
 
-        list_parser = self.subparser.add_parser(
-                name="list",
-                help="list IOModules")
-        list_parser.set_defaults(action="list")
-
-        pinout_parser = self.subparser.add_parser(
-                name="pinout",
-                help="display BMII pinout")
-        pinout_parser.set_defaults(action="pinout")
+        info_parser = self.subparser.add_parser(
+                name="info",
+                help="display BMII configuration")
+        info_parser.set_defaults(action="info")
 
         eval_parser = self.subparser.add_parser(
                 name="eval",
@@ -279,17 +275,34 @@ class BMII():
                 return x.addr
             return -1
 
+        def getiname(x):
+            if isinstance(x, IntRequest):
+                return x.name
+            return ""
+
+        print("Modules: ")
         for m in sorted(self.modules.__dict__.values(), key=getmaddr):
             if isinstance(m, BMIIModule):
-                print("{}: {}{}".format(hex(m.iomodule.addr), m.iomodule.name,
+                print("  {}: {}{}".format(hex(m.iomodule.addr), m.iomodule.name,
                     ["", " (shadowed)"][int(m.iomodule.shadowed)]))
+
+                print("    Control Register(s):")
                 for r in sorted(m.iomodule.cregs.__dict__.values(), key=getraddr):
                     if isinstance(r, CtrlReg):
-                        print("\t{}: {} ({})".format(hex(r.addr), r.name,
+                        print("      {}: {} ({})".format(hex(r.addr), r.name,
                                         str(r.direction)))
 
-    def pinout(self):
-        return self.ioctl.sb.pinout()
+                print("    Interrupt line(s):")
+                for i in sorted(m.iomodule.intrs.__dict__.values(), key=getiname):
+                    if isinstance(i, IntRequest):
+                        print("      {}: {}".format(i.name,
+                            " ".join([h.func.__name__ for h in i.handlers])))
+
+    def display_pinout(self):
+        self.ioctl.sb.display()
+
+    def display_interrupts(self):
+        self.ioctl.nb.interrupts.display()
 
     def test(self):
         logging.debug("Testing device...")
@@ -384,10 +397,12 @@ class BMII():
             self.test()
         elif args.action == "simulate":
             self.modules.get_module(args.module).run_tests()
-        elif args.action == "list":
+        elif args.action == "info":
             self.list_modules()
-        elif args.action == "pinout":
-            print(self.pinout())
+            print()
+            self.display_interrupts()
+            print()
+            self.display_pinout()
         elif args.action == "eval":
             print(eval(args.cmd))
         elif args.action == "run":
