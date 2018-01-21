@@ -18,6 +18,15 @@ setup(
     author_email="pierre.surply@lse.epita.fr",
     install_requires=open('requirements.txt').readlines(),
     packages=find_packages(),
+    package_data={
+        "bmii.usbctl": [
+            "3rdparty/*",
+            "3rdparty/ixo-usb-jtag/*",
+            "3rdparty/ixo-usb-jtag/fx2/*",
+            "fw/*",
+            "utils/99-bmii.rules"
+        ]
+    },
     entry_points={
           'console_scripts': [
               'bmii = bmii.__main__:main'
